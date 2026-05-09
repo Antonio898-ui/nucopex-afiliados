@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin — Nucopex Afiliados</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">NUCO<span>PEX</span></div>
+  <div class="nav-right">
+    <a href="/register" target="_blank" class="btn btn-outline btn-sm" style="text-decoration:none">Página de registro</a>
+    <span class="nav-tag">ADMIN</span>
+  </div>
+</nav>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 56px)">
+  <div style="background:#fff;border-radius:16px;padding:2rem;width:360px;max-width:95vw;box-shadow:0 8px 30px rgba(0,0,0,.1)">
+    <div style="font-size:1.1rem;font-weight:700;color:var(--verde-oscuro);margin-bottom:1.25rem">🔒 Acceso Admin</div>
+    <div class="fg">
+      <label>Contraseña</label>
+      <input type="password" id="pwdInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+    </div>
+    <div id="loginErr" class="alert alert-red" style="display:none">Contraseña incorrecta</div>
+    <button class="btn btn-primary" style="width:100%" onclick="login()">Entrar</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appScreen" style="display:none">
+<div class="page">
+
+  <!-- STATS -->
+  <div class="cards" id="statsCards">
+    <div class="card dark"><div class="card-label">Afiliados</div><div class="card-value" id="s-total">—</div><div class="card-sub" id="s-sub">— auto · — VIP</div></div>
+    <div class="card"><div class="card-label">Clientes referidos</div><div class="card-value" id="s-customers">—</div><div class="card-sub">nuevos clientes</div></div>
+    <div class="card"><div class="card-label">Pendiente de pago</div><div class="card-value" id="s-pending">—</div><div class="card-sub" id="s-pending-eur">— €</div></div>
+    <div class="card"><div class="card-label">Total pagado</div><div class="card-value" id="s-paid">—</div><div class="card-sub" id="s-paid-eur">— €</div></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab on" onclick="showTab('affiliates')">Afiliados</div>
+    <div class="tab" onclick="showTab('commissions')">Comisiones</div>
+  </div>
+
+  <!-- TAB: AFILIADOS -->
+  <div id="tab-affiliates">
+    <div class="toolbar">
+      <div class="toolbar-title">Afiliados</div>
+      <input class="search" type="text" placeholder="🔍 Buscar..." id="searchAff" oninput="renderAffiliates()">
+      <button class="btn btn-primary" onclick="openAddModal()">+ Nuevo VIP</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Afiliado</th>
+          <th>Código</th>
+          <th>Tipo</th>
+          <th>Referidos</th>
+          <th>Pendiente</th>
+          <th>Acciones</th>
+        </tr></thead>
+        <tbody id="affBody"></tbody>
+      </table>
+      <div id="affEmpty" class="empty" style="display:none"><div class="empty-icon">🐾</div>Sin afiliados aún</div>
+    </div>
+  </div>
+
+  <!-- TAB: COMISIONES -->
+  <div id="tab-commissions" style="display:none">
+    <div class="toolbar">
+      <div class="toolbar-title">Comisiones</div>
+      <select class="search" id="filterStatus" onchange="renderCommissions()" style="width:160px">
+        <option value="">Todas</option>
+        <option value="pending">Pendientes</option>
+        <option value="paid">Pagadas</option>
+      </select>
+      <select class="search" id="filterType" onchange="renderCommissions()" style="width:160px">
+        <option value="">Todos los tipos</option>
+        <option value="flat">Primera compra (15€)</option>
+        <option value="recurring">Recurrente (1%)</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Afiliado</th>
+          <th>Cliente</th>
+          <th>Tipo</th>
+          <th>Importe</th>
+          <th>Recompensa</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr></thead>
+        <tbody id="comBody"></tbody>
+      </table>
+      <div id="comEmpty" class="empty" style="display:none"><div class="empty-icon">📋</div>Sin comisiones</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- MODAL: NUEVO VIP -->
+<div class="overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Nuevo afiliado VIP</div>
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="row2">
+        <div class="fg"><label>Nombre *</label><input id="f-name" type="text" placeholder="María García"></div>
+        <div class="fg"><label>Código *</label><input id="f-code" type="text" placeholder="MARIA" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label>Email</label><input id="f-email" type="email" placeholder="maria@gmail.com"></div>
+        <div class="fg"><label>Teléfono</label><input id="f-phone" type="tel" placeholder="666 123 456"></div>
+      </div>
+      <div class="fg"><label>IBAN</label><input id="f-iban" type="text" placeholder="ES12 3456 7890 1234 5678 9012"></div>
+      <hr class="divider">
+      <div class="fg">
+        <label>Comisión recurrente (1% por cada compra del mismo cliente)</label>
+        <div class="toggle-row" style="margin-top:6px">
+          <div class="topt" id="rec-no" onclick="setRec(false)"><span class="icon">❌</span>Solo 1ª compra</div>
+          <div class="topt on" id="rec-yes" onclick="setRec(true)"><span class="icon">✅</span>15€ + 1% recurrente</div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Recompensa por defecto</label>
+        <div class="toggle-row" style="margin-top:6px">
+          <div class="topt on" id="rw-discount" onclick="setRw('discount')"><span class="icon">🏷️</span>Descuento tienda</div>
+          <div class="topt" id="rw-iban" onclick="setRw('iban')"><span class="icon">🏦</span>Transferencia IBAN</div>
+        </div>
+      </div>
+      <div class="fg"><label>Notas</label><input id="f-notes" type="text" placeholder="Ej: cliente desde 2024, referido por..."></div>
+      <div id="addErr" class="alert alert-red" style="display:none"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeAddModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveAffiliate()">Crear afiliado VIP</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL: DETALLE AFILIADO -->
+<div class="panel-overlay" id="panelOverlay" onclick="closePanelIfBg(event)">
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-name" id="p-name">—</div>
+        <div class="panel-sub" id="p-code">—</div>
+        <div style="color:rgba(255,255,255,.4);font-size:.72rem;margin-top:3px" id="p-type-label">—</div>
+      </div>
+      <button class="panel-close" onclick="closePanel()">✕</button>
+    </div>
+    <div class="panel-body">
+      <!-- Share box -->
+      <div style="background:#FFF8E1;border:1px solid var(--verde-claro);border-radius:10px;padding:.9rem 1rem;margin-bottom:1rem">
+        <div style="font-size:.68rem;font-weight:700;color:#D4A017;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Enlace de afiliado</div>
+        <div id="p-link" style="font-family:monospace;font-size:.8rem;color:var(--verde-oscuro);word-break:break-all;margin-bottom:8px"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-green btn-sm" onclick="copyAffLink()">📋 Copiar</button>
+          <button class="btn btn-wa btn-sm" onclick="shareWA()">WhatsApp</button>
+          <button class="btn btn-outline btn-sm" onclick="shareEmail()">✉ Email</button>
+        </div>
+      </div>
+      <div class="section-label">Información</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">Email</div><div class="iv" id="p-email">—</div></div>
+        <div class="info-item"><div class="il">Teléfono</div><div class="iv" id="p-phone">—</div></div>
+        <div class="info-item"><div class="il">IBAN</div><div class="iv" style="font-size:.75rem" id="p-iban">—</div></div>
+        <div class="info-item"><div class="il">Recompensa</div><div class="iv" id="p-reward">—</div></div>
+      </div>
+      <div id="p-notes-wrap" style="display:none">
+        <div class="section-label">Notas</div>
+        <div style="font-size:.875rem;color:var(--suave)" id="p-notes"></div>
+      </div>
+      <div class="section-label">Estadísticas</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">Clientes traídos</div><div class="iv" id="p-customers">—</div></div>
+        <div class="info-item"><div class="il">Ganado pendiente</div><div class="iv" id="p-pending">—</div></div>
+        <div class="info-item"><div class="il">Total ganado</div><div class="iv" id="p-total">—</div></div>
+        <div class="info-item"><div class="il">Total pagado</div><div class="iv" id="p-paid">—</div></div>
+      </div>
+      <div class="section-label">Comisiones</div>
+      <div id="p-coms"></div>
+      <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--borde);display:flex;gap:.5rem">
+        <button class="btn btn-red btn-sm" onclick="deleteAffiliate()">Eliminar afiliado</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let adminPwd = '';
+let affiliates = [];
+let commissions = [];
+let currentId = null;
+let hasRecurring = true;
+let rewardPref = 'discount';
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+async function login() {
+  const pwd = document.getElementById('pwdInput').value;
+  const r = await fetch('/api/admin/stats', { headers: { 'x-admin-password': pwd } });
+  if (r.ok) {
+    adminPwd = pwd;
+    sessionStorage.setItem('ap', pwd);
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = '';
+    loadAll();
+  } else {
+    document.getElementById('loginErr').style.display = '';
+  }
+}
+
+async function loadAll() {
+  await Promise.all([loadStats(), loadAffiliates(), loadCommissions()]);
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  const r = await api('/api/admin/stats');
+  if (!r) return;
+  document.getElementById('s-total').textContent     = r.total;
+  document.getElementById('s-sub').textContent       = `${r.self} auto · ${r.manual} VIP`;
+  document.getElementById('s-customers').textContent = r.customers;
+  document.getElementById('s-pending').textContent   = r.pending_count;
+  document.getElementById('s-pending-eur').textContent = `${r.pending_amount.toFixed(2)} €`;
+  document.getElementById('s-paid').textContent      = r.paid_count;
+  document.getElementById('s-paid-eur').textContent  = `${r.paid_amount.toFixed(2)} €`;
+}
+
+// ── AFFILIATES ────────────────────────────────────────────────────────────────
+async function loadAffiliates() {
+  affiliates = await api('/api/admin/affiliates') || [];
+  renderAffiliates();
+}
+
+function renderAffiliates() {
+  const q = document.getElementById('searchAff').value.toLowerCase();
+  const list = q ? affiliates.filter(a =>
+    a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q) || (a.email||'').includes(q)
+  ) : affiliates;
+  const tbody = document.getElementById('affBody');
+  document.getElementById('affEmpty').style.display = list.length ? 'none' : '';
+  tbody.innerHTML = list.map(a => `
+    <tr>
+      <td><div class="td-name">${esc(a.name)}</div><div class="td-sub">${esc(a.email||'—')}</div></td>
+      <td><code style="background:var(--verde-bg);padding:2px 8px;border-radius:5px;font-size:.82rem;color:var(--verde-oscuro);cursor:pointer" onclick="copyCode('${a.code}')">${a.code}</code></td>
+      <td>${a.type==='manual' ? '<span class="badge badge-manual">VIP</span>' : '<span class="badge badge-self">Auto</span>'}</td>
+      <td><strong>${a.customers_count}</strong></td>
+      <td>${a.pending_count > 0 ? `<span class="badge badge-pending">${a.pending_count} · ${a.pending_amount.toFixed(0)}€</span>` : '<span style="color:var(--suave)">—</span>'}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openPanel('${a.id}')">Detalle →</button></td>
+    </tr>`).join('');
+}
+
+// ── COMMISSIONS ───────────────────────────────────────────────────────────────
+async function loadCommissions() {
+  commissions = await api('/api/admin/commissions') || [];
+  renderCommissions();
+}
+
+function renderCommissions() {
+  const status = document.getElementById('filterStatus').value;
+  const type   = document.getElementById('filterType').value;
+  let list = commissions;
+  if (status) list = list.filter(c => c.status === status);
+  if (type)   list = list.filter(c => c.commission_type === type);
+  const tbody = document.getElementById('comBody');
+  document.getElementById('comEmpty').style.display = list.length ? 'none' : '';
+  tbody.innerHTML = list.map(c => {
+    const rwLabel = c.affiliates?.reward_preference === 'iban' ? '🏦 IBAN' : '🏷️ Descuento';
+    const typeLabel = c.commission_type === 'flat' ? '1ª compra' : '1% recurrente';
+    const isPending = c.status === 'pending';
+    return `<tr>
+      <td><div class="td-name">${esc(c.affiliates?.name||'—')}</div><div class="td-sub">${c.affiliates?.code||''}</div></td>
+      <td><div class="td-name">${esc(c.referred_customers?.customer_name||'—')}</div><div class="td-sub">${esc(c.referred_customers?.customer_email||'')}</div></td>
+      <td><span style="font-size:.78rem">${typeLabel}</span></td>
+      <td><strong>${Number(c.commission_amount).toFixed(2)}€</strong></td>
+      <td style="font-size:.8rem">${rwLabel}</td>
+      <td>${isPending ? '<span class="badge badge-pending">⏳ Pendiente</span>' : '<span class="badge badge-paid">✓ Pagado</span>'}</td>
+      <td>${isPending
+        ? `<button class="btn btn-green btn-sm" onclick="markPaid('${c.id}')">Marcar pagado</button>`
+        : `<button class="btn btn-yellow btn-sm" onclick="markPending('${c.id}')">Deshacer</button>`
+      }</td>
+    </tr>`;
+  }).join('');
+}
+
+async function markPaid(id) {
+  await api(`/api/admin/commissions/${id}`, 'PATCH', { status: 'paid' });
+  await Promise.all([loadStats(), loadAffiliates(), loadCommissions()]);
+  if (currentId) refreshPanel(currentId);
+  showToast('✓ Marcado como pagado');
+}
+
+async function markPending(id) {
+  await api(`/api/admin/commissions/${id}`, 'PATCH', { status: 'pending' });
+  await Promise.all([loadStats(), loadAffiliates(), loadCommissions()]);
+  if (currentId) refreshPanel(currentId);
+}
+
+// ── ADD AFFILIATE ─────────────────────────────────────────────────────────────
+function setRec(v) {
+  hasRecurring = v;
+  document.getElementById('rec-yes').classList.toggle('on', v);
+  document.getElementById('rec-no').classList.toggle('on', !v);
+}
+function setRw(v) {
+  rewardPref = v;
+  document.getElementById('rw-discount').classList.toggle('on', v === 'discount');
+  document.getElementById('rw-iban').classList.toggle('on', v === 'iban');
+}
+
+function openAddModal() {
+  ['f-name','f-code','f-email','f-phone','f-iban','f-notes'].forEach(id => document.getElementById(id).value = '');
+  setRec(true); setRw('discount');
+  document.getElementById('addErr').style.display = 'none';
+  document.getElementById('addModal').classList.add('open');
+  document.getElementById('f-name').focus();
+}
+function closeAddModal() { document.getElementById('addModal').classList.remove('open'); }
+
+async function saveAffiliate() {
+  const name = document.getElementById('f-name').value.trim();
+  const code = document.getElementById('f-code').value.trim();
+  document.getElementById('addErr').style.display = 'none';
+  if (!name || !code) { showErr('addErr','Nombre y código son obligatorios'); return; }
+  const r = await api('/api/admin/affiliates', 'POST', {
+    name, code,
+    email: document.getElementById('f-email').value.trim(),
+    phone: document.getElementById('f-phone').value.trim(),
+    iban:  document.getElementById('f-iban').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+    has_recurring: hasRecurring,
+    reward_preference: rewardPref,
+  });
+  if (r?.error) { showErr('addErr', r.error); return; }
+  closeAddModal();
+  await loadAll();
+  showToast(`✓ ${name} añadido como afiliado VIP`);
+}
+
+// ── PANEL DETALLE ─────────────────────────────────────────────────────────────
+function openPanel(id) {
+  currentId = id;
+  refreshPanel(id);
+  document.getElementById('panelOverlay').classList.add('open');
+}
+function closePanel() {
+  document.getElementById('panelOverlay').classList.remove('open');
+  currentId = null;
+}
+function closePanelIfBg(e) { if (e.target === document.getElementById('panelOverlay')) closePanel(); }
+
+function refreshPanel(id) {
+  const a = affiliates.find(x => x.id === id);
+  if (!a) return;
+  const link = `${location.origin}?ref=${a.code}`;
+  document.getElementById('p-name').textContent  = a.name;
+  document.getElementById('p-code').textContent  = `Código: ${a.code}`;
+  document.getElementById('p-type-label').textContent = a.type === 'manual'
+    ? (a.has_recurring ? 'VIP · 15€ + 1% recurrente' : 'VIP · solo 1ª compra')
+    : 'Auto-registrado · 15€ descuento';
+  document.getElementById('p-link').textContent  = link;
+  document.getElementById('p-email').textContent = a.email || '—';
+  document.getElementById('p-phone').textContent = a.phone || '—';
+  document.getElementById('p-iban').textContent  = a.iban  || '—';
+  document.getElementById('p-reward').textContent = a.reward_preference === 'iban' ? '🏦 Transferencia IBAN' : '🏷️ Descuento tienda';
+  document.getElementById('p-notes-wrap').style.display = a.notes ? '' : 'none';
+  document.getElementById('p-notes').textContent = a.notes || '';
+  document.getElementById('p-customers').textContent = a.customers_count || 0;
+  document.getElementById('p-pending').textContent   = `${(a.pending_amount||0).toFixed(2)} €`;
+  document.getElementById('p-total').textContent     = `${((a.pending_amount||0)+(a.paid_amount||0)).toFixed(2)} €`;
+  document.getElementById('p-paid').textContent      = `${(a.paid_amount||0).toFixed(2)} €`;
+
+  const myComs = commissions.filter(c => c.affiliate_id === id).slice(0, 20);
+  document.getElementById('p-coms').innerHTML = myComs.length
+    ? myComs.map(c => {
+        const isPending = c.status === 'pending';
+        return `<div class="com-item">
+          <div class="com-left">
+            <div class="cn">${esc(c.referred_customers?.customer_name||'—')}</div>
+            <div class="cd">${c.commission_type==='flat'?'1ª compra':'Recurrente'} · ${fmtDate(c.created_at)}</div>
+            ${c.shopify_order_id ? `<div class="cd">Pedido #${c.shopify_order_id}</div>` : ''}
+          </div>
+          <div class="com-right">
+            <div class="com-amount">${Number(c.commission_amount).toFixed(2)}€</div>
+            ${isPending
+              ? `<span class="badge badge-pending">⏳ Pendiente</span><button class="btn btn-green btn-sm" onclick="markPaid('${c.id}')">Pagar</button>`
+              : `<span class="badge badge-paid">✓ Pagado</span>`}
+          </div>
+        </div>`;
+      }).join('')
+    : '<div class="empty" style="padding:1.5rem 0"><div class="empty-icon">📋</div>Sin comisiones aún</div>';
+}
+
+// ── SHARE ─────────────────────────────────────────────────────────────────────
+function getLink() { return document.getElementById('p-link').textContent; }
+function getName() { return document.getElementById('p-name').textContent; }
+
+function copyCode(code) {
+  navigator.clipboard.writeText(`${location.origin}?ref=${code}`);
+  showToast('Enlace copiado');
+}
+function copyAffLink() {
+  navigator.clipboard.writeText(getLink());
+  showToast('Enlace copiado al portapapeles');
+}
+function shareWA() {
+  const msg = encodeURIComponent(`¡Hola! 🐾 Te comparto mi enlace de Nucopex. Si haces tu primer pedido con mi enlace, ¡yo consigo un regalo!\n\n👉 ${getLink()}`);
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
+}
+function shareEmail() {
+  const s = encodeURIComponent('Te comparto mi enlace de Nucopex 🐾');
+  const b = encodeURIComponent(`¡Hola!\n\nTe comparto mi enlace de Nucopex, comida natural para perros.\n\n👉 ${getLink()}\n\nUn saludo,\n${getName()}`);
+  window.location.href = `mailto:?subject=${s}&body=${b}`;
+}
+
+async function deleteAffiliate() {
+  const a = affiliates.find(x => x.id === currentId);
+  if (!a || !confirm(`¿Eliminar a ${a.name} y todas sus comisiones?`)) return;
+  await api(`/api/admin/affiliates/${currentId}`, 'DELETE');
+  closePanel();
+  await loadAll();
+  showToast('Afiliado eliminado');
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function showTab(t) {
+  document.getElementById('tab-affiliates').style.display  = t==='affiliates'  ? '' : 'none';
+  document.getElementById('tab-commissions').style.display = t==='commissions' ? '' : 'none';
+  document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('on', (i===0&&t==='affiliates')||(i===1&&t==='commissions')));
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+async function api(url, method='GET', body=null) {
+  const opts = { headers: { 'x-admin-password': adminPwd, 'Content-Type': 'application/json' } };
+  if (method !== 'GET') { opts.method = method; if (body) opts.body = JSON.stringify(body); }
+  const r = await fetch(url, opts);
+  return r.json();
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('es-ES') : '—'; }
+function showErr(id, msg) { const el=document.getElementById(id); el.textContent=msg; el.style.display=''; }
+let toastT;
+function showToast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+const savedPwd = sessionStorage.getItem('ap');
+if (savedPwd) {
+  fetch('/api/admin/stats',{headers:{'x-admin-password':savedPwd}}).then(r=>{
+    if(r.ok){adminPwd=savedPwd;document.getElementById('loginScreen').style.display='none';document.getElementById('appScreen').style.display='';loadAll();}
+  });
+}
+document.getElementById('pwdInput').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
+</script>
+</body>
+</html>

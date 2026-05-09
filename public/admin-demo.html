@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin Demo — Nucopex Afiliados</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">NUCO<span>PEX</span></div>
+  <div class="nav-right">
+    <a href="#" class="btn btn-outline btn-sm" style="text-decoration:none">Página de registro</a>
+    <span class="nav-tag">ADMIN</span>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- STATS -->
+  <div class="cards">
+    <div class="card dark">
+      <div class="card-label">Afiliados</div>
+      <div class="card-value">6</div>
+      <div class="card-sub">4 auto · 2 VIP</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Clientes referidos</div>
+      <div class="card-value">14</div>
+      <div class="card-sub">nuevos clientes</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Pendiente de pago</div>
+      <div class="card-value">5</div>
+      <div class="card-sub">92.30 €</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Total pagado</div>
+      <div class="card-value">9</div>
+      <div class="card-sub">135.00 €</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab on" id="tab-aff-btn" onclick="showTab('affiliates')">Afiliados</div>
+    <div class="tab" id="tab-com-btn" onclick="showTab('commissions')">Comisiones</div>
+  </div>
+
+  <!-- TAB: AFILIADOS -->
+  <div id="tab-affiliates">
+    <div class="toolbar">
+      <div class="toolbar-title">Afiliados</div>
+      <input class="search" type="text" placeholder="🔍 Buscar...">
+      <button class="btn btn-primary" onclick="openPanel()">+ Nuevo VIP</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Afiliado</th><th>Código</th><th>Tipo</th><th>Referidos</th><th>Pendiente</th><th>Acciones</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><div class="td-name">María García</div><div class="td-sub">maria@gmail.com</div></td>
+            <td><code style="background:#FBE9E9;padding:2px 8px;border-radius:5px;font-size:.82rem;color:#8B0000;cursor:pointer">MARIA</code></td>
+            <td><span class="badge badge-manual">VIP</span></td>
+            <td><strong>5</strong></td>
+            <td><span class="badge badge-pending">2 · 30€</span></td>
+            <td><button class="btn btn-outline btn-sm" onclick="openPanel()">Detalle →</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-name">Carlos Ruiz</div><div class="td-sub">carlos@hotmail.com</div></td>
+            <td><code style="background:#FBE9E9;padding:2px 8px;border-radius:5px;font-size:.82rem;color:#8B0000;cursor:pointer">CARLOS</code></td>
+            <td><span class="badge badge-manual">VIP</span></td>
+            <td><strong>3</strong></td>
+            <td><span class="badge badge-pending">1 · 4.20€</span></td>
+            <td><button class="btn btn-outline btn-sm" onclick="openPanel()">Detalle →</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-name">Laura Martínez</div><div class="td-sub">laura@gmail.com</div></td>
+            <td><code style="background:#FBE9E9;padding:2px 8px;border-radius:5px;font-size:.82rem;color:#8B0000;cursor:pointer">LAURA</code></td>
+            <td><span class="badge badge-self">Auto</span></td>
+            <td><strong>2</strong></td>
+            <td><span class="badge badge-pending">1 · 15€</span></td>
+            <td><button class="btn btn-outline btn-sm" onclick="openPanel()">Detalle →</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-name">Pedro Sánchez</div><div class="td-sub">pedro@gmail.com</div></td>
+            <td><code style="background:#FBE9E9;padding:2px 8px;border-radius:5px;font-size:.82rem;color:#8B0000;cursor:pointer">PEDRO</code></td>
+            <td><span class="badge badge-self">Auto</span></td>
+            <td><strong>2</strong></td>
+            <td><span style="color:var(--suave)">—</span></td>
+            <td><button class="btn btn-outline btn-sm" onclick="openPanel()">Detalle →</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-name">Ana López</div><div class="td-sub">ana@gmail.com</div></td>
+            <td><code style="background:#FBE9E9;padding:2px 8px;border-radius:5px;font-size:.82rem;color:#8B0000;cursor:pointer">ANA</code></td>
+            <td><span class="badge badge-self">Auto</span></td>
+            <td><strong>1</strong></td>
+            <td><span class="badge badge-pending">1 · 15€</span></td>
+            <td><button class="btn btn-outline btn-sm" onclick="openPanel()">Detalle →</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-name">Sofía Torres</div><div class="td-sub">sofia@gmail.com</div></td>
+            <td><code style="background:#FBE9E9;padding:2px 8px;border-radius:5px;font-size:.82rem;color:#8B0000;cursor:pointer">SOFIA</code></td>
+            <td><span class="badge badge-self">Auto</span></td>
+            <td><strong>1</strong></td>
+            <td><span style="color:var(--suave)">—</span></td>
+            <td><button class="btn btn-outline btn-sm" onclick="openPanel()">Detalle →</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: COMISIONES -->
+  <div id="tab-commissions" style="display:none">
+    <div class="toolbar">
+      <div class="toolbar-title">Comisiones</div>
+      <select class="search" style="width:160px"><option>Todas</option><option>Pendientes</option><option>Pagadas</option></select>
+      <select class="search" style="width:160px"><option>Todos los tipos</option><option>Primera compra (15€)</option><option>Recurrente (1%)</option></select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Afiliado</th><th>Cliente</th><th>Tipo</th><th>Importe</th><th>Recompensa</th><th>Estado</th><th>Acción</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><div class="td-name">María García</div><div class="td-sub">MARIA</div></td>
+            <td><div class="td-name">Juan Pérez</div><div class="td-sub">juan@gmail.com</div></td>
+            <td><span style="font-size:.78rem">1ª compra</span></td>
+            <td><strong>15.00€</strong></td>
+            <td style="font-size:.8rem">🏦 IBAN</td>
+            <td><span class="badge badge-pending">⏳ Pendiente</span></td>
+            <td><button class="btn btn-green btn-sm">Marcar pagado</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-name">María García</div><div class="td-sub">MARIA</div></td>
+            <td><div class="td-name">Juan Pérez</div><div class="td-sub">juan@gmail.com</div></td>
+            <td><span style="font-size:.78rem">1% recurrente</span></td>
+            <td><strong>4.20€</strong></td>
+            <td style="font-size:.8rem">🏦 IBAN</td>
+            <td><span class="badge badge-pending">⏳ Pendiente</span></td>
+            <td><button class="btn btn-green btn-sm">Marcar pagado</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-name">Laura Martínez</div><div class="td-sub">LAURA</div></td>
+            <td><div class="td-name">Rocío Gil</div><div class="td-sub">rocio@gmail.com</div></td>
+            <td><span style="font-size:.78rem">1ª compra</span></td>
+            <td><strong>15.00€</strong></td>
+            <td style="font-size:.8rem">🏷️ Descuento</td>
+            <td><span class="badge badge-pending">⏳ Pendiente</span></td>
+            <td><button class="btn btn-green btn-sm">Marcar pagado</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-name">Carlos Ruiz</div><div class="td-sub">CARLOS</div></td>
+            <td><div class="td-name">Marta Díaz</div><div class="td-sub">marta@gmail.com</div></td>
+            <td><span style="font-size:.78rem">1ª compra</span></td>
+            <td><strong>15.00€</strong></td>
+            <td style="font-size:.8rem">🏷️ Descuento</td>
+            <td><span class="badge badge-paid">✓ Pagado</span></td>
+            <td><button class="btn btn-yellow btn-sm">Deshacer</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-name">Pedro Sánchez</div><div class="td-sub">PEDRO</div></td>
+            <td><div class="td-name">Luis Fernández</div><div class="td-sub">luis@gmail.com</div></td>
+            <td><span style="font-size:.78rem">1ª compra</span></td>
+            <td><strong>15.00€</strong></td>
+            <td style="font-size:.8rem">🏷️ Descuento</td>
+            <td><span class="badge badge-paid">✓ Pagado</span></td>
+            <td><button class="btn btn-yellow btn-sm">Deshacer</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- PANEL LATERAL DEMO -->
+<div class="panel-overlay" id="panelOverlay" onclick="if(event.target===this)closePanel()">
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-name">María García</div>
+        <div class="panel-sub">Código: MARIA</div>
+        <div style="color:rgba(255,255,255,.4);font-size:.72rem;margin-top:3px">VIP · 15€ + 1% recurrente</div>
+      </div>
+      <button class="panel-close" onclick="closePanel()">✕</button>
+    </div>
+    <div class="panel-body">
+
+      <div style="background:#FFF8E1;border:1px solid #D4A017;border-radius:10px;padding:.9rem 1rem;margin-bottom:1rem">
+        <div style="font-size:.68rem;font-weight:700;color:#D4A017;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Enlace de afiliado</div>
+        <div style="font-family:monospace;font-size:.8rem;color:#8B0000;word-break:break-all;margin-bottom:8px">https://nucopex.com?ref=MARIA</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-green btn-sm">📋 Copiar</button>
+          <button class="btn btn-wa btn-sm">WhatsApp</button>
+          <button class="btn btn-outline btn-sm">✉ Email</button>
+        </div>
+      </div>
+
+      <div class="section-label">Información</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">Email</div><div class="iv">maria@gmail.com</div></div>
+        <div class="info-item"><div class="il">Teléfono</div><div class="iv">666 123 456</div></div>
+        <div class="info-item"><div class="il">IBAN</div><div class="iv" style="font-size:.75rem">ES12 3456 7890 ····</div></div>
+        <div class="info-item"><div class="il">Recompensa</div><div class="iv">🏦 IBAN</div></div>
+      </div>
+
+      <div class="section-label">Estadísticas</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">Clientes traídos</div><div class="iv">5</div></div>
+        <div class="info-item"><div class="il">Ganado pendiente</div><div class="iv">34.20 €</div></div>
+        <div class="info-item"><div class="il">Total ganado</div><div class="iv">94.20 €</div></div>
+        <div class="info-item"><div class="il">Total pagado</div><div class="iv">60.00 €</div></div>
+      </div>
+
+      <div class="section-label">Comisiones recientes</div>
+
+      <div class="com-item">
+        <div class="com-left">
+          <div class="cn">Juan Pérez</div>
+          <div class="cd">1ª compra · 12/04/2026</div>
+          <div class="cd">Pedido #5821</div>
+        </div>
+        <div class="com-right">
+          <div class="com-amount">15.00€</div>
+          <span class="badge badge-pending">⏳ Pendiente</span>
+          <button class="btn btn-green btn-sm">Pagar</button>
+        </div>
+      </div>
+
+      <div class="com-item">
+        <div class="com-left">
+          <div class="cn">Juan Pérez</div>
+          <div class="cd">1% recurrente · 14/04/2026</div>
+          <div class="cd">Pedido #5944 · 420€</div>
+        </div>
+        <div class="com-right">
+          <div class="com-amount">4.20€</div>
+          <span class="badge badge-pending">⏳ Pendiente</span>
+          <button class="btn btn-green btn-sm">Pagar</button>
+        </div>
+      </div>
+
+      <div class="com-item">
+        <div class="com-left">
+          <div class="cn">Elena Vega</div>
+          <div class="cd">1ª compra · 02/04/2026</div>
+          <div class="cd">Pedido #5701</div>
+        </div>
+        <div class="com-right">
+          <div class="com-amount">15.00€</div>
+          <span class="badge badge-paid">✓ Pagado 05/04</span>
+        </div>
+      </div>
+
+      <div class="com-item">
+        <div class="com-left">
+          <div class="cn">Roberto Mora</div>
+          <div class="cd">1ª compra · 28/03/2026</div>
+          <div class="cd">Pedido #5620</div>
+        </div>
+        <div class="com-right">
+          <div class="com-amount">15.00€</div>
+          <span class="badge badge-paid">✓ Pagado 01/04</span>
+        </div>
+      </div>
+
+      <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--borde)">
+        <button class="btn btn-red btn-sm">Eliminar afiliado</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(t) {
+  document.getElementById('tab-affiliates').style.display  = t === 'affiliates'  ? '' : 'none';
+  document.getElementById('tab-commissions').style.display = t === 'commissions' ? '' : 'none';
+  document.getElementById('tab-aff-btn').classList.toggle('on', t === 'affiliates');
+  document.getElementById('tab-com-btn').classList.toggle('on', t === 'commissions');
+}
+function openPanel()  { document.getElementById('panelOverlay').classList.add('open'); }
+function closePanel() { document.getElementById('panelOverlay').classList.remove('open'); }
+</script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mi portal — Nucopex Afiliados</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  body{background:var(--crema)}
+  .center{display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem;min-height:calc(100vh - 56px)}
+  .login-box{background:#fff;border-radius:16px;padding:2rem;width:400px;max-width:100%;box-shadow:0 4px 20px rgba(0,0,0,.08);margin-top:1rem}
+  .portal-wrap{width:700px;max-width:100%}
+  .profile-bar{background:var(--verde-oscuro);border-radius:12px;padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem}
+  .profile-name{color:#fff;font-size:1.15rem;font-weight:700}
+  .profile-code{color:var(--verde-claro);font-family:monospace;font-size:.85rem;margin-top:2px}
+  .link-share{background:#FFF8E1;border:1px solid #D4A017;border-radius:10px;padding:.9rem 1.1rem;margin-bottom:1.5rem}
+  .link-share .ls-label{font-size:.68rem;font-weight:700;color:#D4A017;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+  .link-share .ls-url{font-family:monospace;font-size:.82rem;color:var(--verde-oscuro);word-break:break-all;margin-bottom:8px}
+  .pref-row{background:#fff;border:1px solid var(--borde);border-radius:10px;padding:.9rem 1rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem}
+  .pref-label{font-size:.875rem;font-weight:600;color:var(--verde-oscuro)}
+  .pref-sub{font-size:.78rem;color:var(--suave);margin-top:2px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">NUCO<span>PEX</span></div>
+  <div class="nav-right"><span class="nav-tag">MI PORTAL</span></div>
+</nav>
+
+<div class="center">
+
+  <!-- LOGIN -->
+  <div id="loginWrap">
+    <div class="login-box">
+      <div style="text-align:center;margin-bottom:1.25rem">
+        <div style="font-size:2rem;margin-bottom:.4rem">🐾</div>
+        <div style="font-size:1.05rem;font-weight:700;color:var(--verde-oscuro)">Consulta tus estadísticas</div>
+        <div style="font-size:.82rem;color:var(--suave);margin-top:4px">Introduce tu código de afiliado</div>
+      </div>
+      <div class="fg">
+        <label>Tu código de afiliado</label>
+        <input id="codeInput" type="text" placeholder="Ej: MARIA" style="text-transform:uppercase;font-family:monospace;font-size:1rem;letter-spacing:.1em;text-align:center" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')" onkeydown="if(event.key==='Enter')loadPortal()">
+      </div>
+      <div id="loginErr" class="alert alert-red" style="display:none">Código no encontrado. Comprueba que está escrito correctamente.</div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="loadPortal()">Ver mis estadísticas →</button>
+      <div style="text-align:center;margin-top:1rem;font-size:.78rem;color:var(--suave)">
+        ¿No tienes código aún? <a href="/register" style="color:var(--verde-oscuro);font-weight:600">Regístrate aquí</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- PORTAL -->
+  <div id="portalWrap" style="display:none" class="portal-wrap">
+
+    <!-- Profile -->
+    <div class="profile-bar">
+      <div>
+        <div class="profile-name" id="pt-name">—</div>
+        <div class="profile-code" id="pt-code">—</div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="logout()" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3);color:#fff">Cambiar código</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="cards" style="grid-template-columns:repeat(2,1fr);margin-bottom:1.25rem">
+      <div class="card dark"><div class="card-label">Clientes que has traído</div><div class="card-value" id="pt-customers">—</div><div class="card-sub">nuevos clientes</div></div>
+      <div class="card"><div class="card-label">Total ganado</div><div class="card-value" id="pt-total">—</div><div class="card-sub" id="pt-total-sub">— pendiente · — pagado</div></div>
+    </div>
+
+    <!-- Share link -->
+    <div class="link-share">
+      <div class="ls-label">Tu enlace de afiliado</div>
+      <div class="ls-url" id="pt-link"></div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn btn-green btn-sm" onclick="copyLink()">📋 Copiar enlace</button>
+        <button class="btn btn-wa btn-sm" onclick="shareWA()">WhatsApp</button>
+        <button class="btn btn-outline btn-sm" onclick="shareEmail()">✉ Email</button>
+      </div>
+    </div>
+
+    <!-- Reward preference (VIP only) -->
+    <div id="prefBox" style="display:none" class="pref-row">
+      <div>
+        <div class="pref-label">¿Cómo quieres recibir tus recompensas?</div>
+        <div class="pref-sub">Esta preferencia se aplica a todas tus comisiones pendientes y futuras</div>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-sm" id="pref-discount" onclick="setPref('discount')">🏷️ Descuento</button>
+        <button class="btn btn-sm" id="pref-iban" onclick="setPref('iban')">🏦 IBAN</button>
+      </div>
+    </div>
+
+    <!-- Commissions -->
+    <div class="toolbar" style="margin-bottom:.75rem">
+      <div class="toolbar-title" style="font-size:.95rem">Mis comisiones</div>
+      <select class="search" id="filterCom" onchange="renderComs()" style="width:150px">
+        <option value="">Todas</option>
+        <option value="pending">Pendientes</option>
+        <option value="paid">Pagadas</option>
+      </select>
+    </div>
+    <div id="comList"></div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let portalData = null;
+let myCode = '';
+
+// Auto-load from URL param
+const urlCode = new URLSearchParams(location.search).get('code');
+if (urlCode) { document.getElementById('codeInput').value = urlCode.toUpperCase(); loadPortal(); }
+
+async function loadPortal() {
+  const code = document.getElementById('codeInput').value.trim().toUpperCase();
+  if (!code) return;
+  document.getElementById('loginErr').style.display = 'none';
+
+  const r = await fetch(`/api/portal/${code}`);
+  if (!r.ok) { document.getElementById('loginErr').style.display = ''; return; }
+
+  portalData = await r.json();
+  myCode = code;
+  sessionStorage.setItem('nc', code);
+  renderPortal();
+}
+
+function renderPortal() {
+  const { affiliate, stats, commissions } = portalData;
+  const link = `${location.origin}?ref=${affiliate.code}`;
+
+  document.getElementById('pt-name').textContent = `Hola, ${affiliate.name} 👋`;
+  document.getElementById('pt-code').textContent = `Código: ${affiliate.code}`;
+  document.getElementById('pt-link').textContent = link;
+  document.getElementById('pt-customers').textContent = stats.customers;
+  document.getElementById('pt-total').textContent = `${Number(stats.total_earned).toFixed(2)} €`;
+  document.getElementById('pt-total-sub').textContent =
+    `${Number(stats.pending_amount).toFixed(2)}€ pendiente · ${Number(stats.paid_amount).toFixed(2)}€ pagado`;
+
+  // Preference selector (VIP only)
+  const prefBox = document.getElementById('prefBox');
+  if (affiliate.type === 'manual') {
+    prefBox.style.display = '';
+    updatePrefButtons(affiliate.reward_preference);
+  } else {
+    prefBox.style.display = 'none';
+  }
+
+  renderComs();
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('portalWrap').style.display = '';
+}
+
+function renderComs() {
+  const filter = document.getElementById('filterCom').value;
+  const coms = (portalData?.commissions || []).filter(c => filter ? c.status === filter : true);
+  const container = document.getElementById('comList');
+
+  if (!coms.length) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">${filter === 'paid' ? '🎁' : '⏳'}</div>${filter === 'paid' ? 'Todavía no tienes comisiones pagadas' : filter === 'pending' ? 'No tienes comisiones pendientes' : 'Aún no tienes comisiones. ¡Comparte tu enlace!'}</div>`;
+    return;
+  }
+
+  container.innerHTML = coms.map(c => {
+    const isPending = c.status === 'pending';
+    const typeLabel = c.commission_type === 'flat' ? '🎯 Primera compra' : '🔄 Compra recurrente';
+    const amountLabel = c.commission_type === 'flat'
+      ? `15.00 € descuento`
+      : `${Number(c.commission_amount).toFixed(2)} € (1% de ${Number(c.order_amount).toFixed(2)}€)`;
+    return `<div class="com-item" style="margin-bottom:.6rem">
+      <div class="com-left">
+        <div class="cn">${typeLabel}</div>
+        <div class="cd">${fmtDate(c.created_at)}</div>
+        <div class="cd" style="margin-top:4px">${amountLabel}</div>
+      </div>
+      <div class="com-right">
+        <div class="com-amount">${Number(c.commission_amount).toFixed(2)}€</div>
+        ${isPending
+          ? '<span class="badge badge-pending">⏳ Pendiente de pago</span>'
+          : `<span class="badge badge-paid">✓ Pagado ${c.paid_at ? fmtDate(c.paid_at) : ''}</span>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function setPref(pref) {
+  const r = await fetch(`/api/portal/${myCode}/preference`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reward_preference: pref }),
+  });
+  if (r.ok) {
+    portalData.affiliate.reward_preference = pref;
+    updatePrefButtons(pref);
+    showToast(pref === 'iban' ? '✓ Recibirás tus recompensas por transferencia IBAN' : '✓ Recibirás tus recompensas como descuento en tienda');
+  }
+}
+
+function updatePrefButtons(pref) {
+  document.getElementById('pref-discount').className = `btn btn-sm ${pref === 'discount' ? 'btn-green' : 'btn-outline'}`;
+  document.getElementById('pref-iban').className      = `btn btn-sm ${pref === 'iban'     ? 'btn-green' : 'btn-outline'}`;
+}
+
+function logout() {
+  sessionStorage.removeItem('nc');
+  portalData = null; myCode = '';
+  document.getElementById('portalWrap').style.display = 'none';
+  document.getElementById('loginWrap').style.display = '';
+  document.getElementById('codeInput').value = '';
+  history.replaceState({}, '', '/portal');
+}
+
+function copyLink() {
+  navigator.clipboard.writeText(document.getElementById('pt-link').textContent);
+  showToast('✓ Enlace copiado');
+}
+function shareWA() {
+  const link = document.getElementById('pt-link').textContent;
+  const msg = encodeURIComponent(`¡Hola! 🐾 Te recomiendo Nucopex, comida natural para perros. ¡Es increíble!\n\nEntra con mi enlace:\n👉 ${link}`);
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
+}
+function shareEmail() {
+  const link = document.getElementById('pt-link').textContent;
+  const name = portalData?.affiliate?.name || '';
+  const s = encodeURIComponent('Te recomiendo Nucopex 🐾');
+  const b = encodeURIComponent(`¡Hola!\n\nTe recomiendo Nucopex, comida natural para perros.\n\n👉 ${link}\n\nUn saludo,\n${name}`);
+  window.location.href = `mailto:?subject=${s}&body=${b}`;
+}
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('es-ES') : '—'; }
+let toastT;
+function showToast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// Restore session
+const saved = sessionStorage.getItem('nc');
+if (saved && !urlCode) { document.getElementById('codeInput').value = saved; loadPortal(); }
+</script>
+</body>
+</html>
