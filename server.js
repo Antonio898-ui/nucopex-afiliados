@@ -52,7 +52,7 @@ app.get('/', (req, res) => {
   const ref = req.query.ref;
   if (ref) {
     const clean = String(ref).toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (clean) return res.redirect(302, `https://nucopex.com?ref=${clean}`);
+    if (clean) return res.redirect(302, `https://nucopex.com/?ref=${clean}`);
   }
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
@@ -72,7 +72,7 @@ app.post('/api/register', async (req, res) => {
   }).select().maybeSingle();
 
   if (error) return res.status(500).json({ error: 'Error al registrar. Inténtalo de nuevo.' });
-  res.json({ code: data.code, name: data.name, link: `https://nucopex.com?ref=${data.code}` });
+  res.json({ code: data.code, name: data.name, link: `https://nucopex.com/?ref=${data.code}` });
 });
 
 // ── API: Admin — Afiliados ────────────────────────────────────────────────────

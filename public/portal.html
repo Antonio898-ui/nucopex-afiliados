@@ -130,7 +130,7 @@ async function loadPortal() {
 
 function renderPortal() {
   const { affiliate, stats, commissions } = portalData;
-  const link = `https://nucopex.com?ref=${affiliate.code}`;
+  const link = `https://nucopex.com/?ref=${affiliate.code}`;
 
   document.getElementById('pt-name').textContent = `Hola, ${affiliate.name} 👋`;
   document.getElementById('pt-code').textContent = `Código: ${affiliate.code}`;

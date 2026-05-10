@@ -363,7 +363,7 @@ function closePanelIfBg(e) { if (e.target === document.getElementById('panelOver
 function refreshPanel(id) {
   const a = affiliates.find(x => x.id === id);
   if (!a) return;
-  const link = `https://nucopex.com?ref=${a.code}`;
+  const link = `https://nucopex.com/?ref=${a.code}`;
   document.getElementById('p-name').textContent  = a.name;
   document.getElementById('p-code').textContent  = `Código: ${a.code}`;
   document.getElementById('p-type-label').textContent = a.type === 'manual'
@@ -407,7 +407,7 @@ function getLink() { return document.getElementById('p-link').textContent; }
 function getName() { return document.getElementById('p-name').textContent; }
 
 function copyCode(code) {
-  navigator.clipboard.writeText(`https://nucopex.com?ref=${code}`);
+  navigator.clipboard.writeText(`https://nucopex.com/?ref=${code}`);
   showToast('Enlace copiado');
 }
 function copyAffLink() {
