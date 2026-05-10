@@ -47,7 +47,15 @@ async function uniqueCode(base) {
 }
 
 // ── Páginas ───────────────────────────────────────────────────────────────────
-app.get('/',         (_, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/', (req, res) => {
+  // Si llega un ?ref=X (link de afiliado mal copiado), redirigir a la tienda
+  const ref = req.query.ref;
+  if (ref) {
+    const clean = String(ref).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (clean) return res.redirect(302, `https://nucopex.com?ref=${clean}`);
+  }
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
 app.get('/register', (_, res) => res.sendFile(path.join(__dirname, 'public', 'register.html')));
 app.get('/portal',   (_, res) => res.sendFile(path.join(__dirname, 'public', 'portal.html')));
 
