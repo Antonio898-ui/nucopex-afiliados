@@ -64,7 +64,7 @@ app.post('/api/register', async (req, res) => {
   }).select().maybeSingle();
 
   if (error) return res.status(500).json({ error: 'Error al registrar. Inténtalo de nuevo.' });
-  res.json({ code: data.code, name: data.name, link: `${SITE_URL}/portal?code=${data.code}` });
+  res.json({ code: data.code, name: data.name, link: `https://nucopex.com?ref=${data.code}` });
 });
 
 // ── API: Admin — Afiliados ────────────────────────────────────────────────────

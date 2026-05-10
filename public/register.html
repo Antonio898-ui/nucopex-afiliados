@@ -113,7 +113,7 @@ async function register() {
 
   if (!r.ok) { showErr('regErr', data.error || 'Error al registrar'); return; }
 
-  myLink = data.link || `${location.origin}/portal?code=${data.code}`;
+  myLink = data.link || `https://nucopex.com?ref=${data.code}`;
   myCode = data.code;
   document.getElementById('s-link').textContent = myLink;
   document.getElementById('formState').style.display = 'none';
