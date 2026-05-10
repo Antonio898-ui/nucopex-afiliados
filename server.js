@@ -15,9 +15,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-const ADMIN_PASSWORD    = process.env.ADMIN_PASSWORD;
-const SHOPIFY_SECRET    = process.env.SHOPIFY_WEBHOOK_SECRET;
-const SITE_URL          = process.env.SITE_URL || 'http://localhost:3000';
+const ADMIN_PASSWORD       = process.env.ADMIN_PASSWORD;
+const SHOPIFY_SECRET       = process.env.SHOPIFY_WEBHOOK_SECRET;
+const SITE_URL             = process.env.SITE_URL || 'http://localhost:3000';
+const SHOPIFY_STORE_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN;          // p.ej. nucopex.myshopify.com
+const SHOPIFY_ADMIN_TOKEN  = process.env.SHOPIFY_ADMIN_TOKEN;           // shpat_xxx (Custom App con write_orders)
+const KLAVIYO_API_KEY      = process.env.KLAVIYO_API_KEY;               // opcional, para notificar al afiliado
+const SHOPIFY_API_VERSION  = '2024-10';
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 function adminAuth(req, res, next) {
@@ -213,6 +217,217 @@ app.patch('/api/portal/:code/preference', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Helpers: Shopify Admin API ────────────────────────────────────────────────
+async function shopifyAdmin(method, path, body) {
+  if (!SHOPIFY_STORE_DOMAIN || !SHOPIFY_ADMIN_TOKEN) {
+    throw new Error('Shopify Admin API no configurado (faltan SHOPIFY_STORE_DOMAIN o SHOPIFY_ADMIN_TOKEN)');
+  }
+  const url = `https://${SHOPIFY_STORE_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}${path}`;
+  const r = await fetch(url, {
+    method,
+    headers: {
+      'X-Shopify-Access-Token': SHOPIFY_ADMIN_TOKEN,
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!r.ok) throw new Error(`Shopify ${method} ${path} → ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+async function refundOrder(orderId, amount, note) {
+  const { transactions } = await shopifyAdmin('GET', `/orders/${orderId}/transactions.json`);
+  const parent = transactions?.find(t =>
+    (t.kind === 'sale' || t.kind === 'capture') && t.status === 'success'
+  );
+  if (!parent) throw new Error(`No hay transacción capturada en pedido ${orderId}`);
+
+  const { refund } = await shopifyAdmin('POST', `/orders/${orderId}/refunds.json`, {
+    refund: {
+      note,
+      notify: true,
+      transactions: [{
+        kind:      'refund',
+        gateway:   parent.gateway,
+        amount:    amount.toFixed(2),
+        parent_id: parent.id,
+      }],
+    },
+  });
+  return refund;
+}
+
+// ── Helpers: Klaviyo (opcional) ──────────────────────────────────────────────
+async function trackKlaviyoEvent(email, metricName, properties) {
+  if (!KLAVIYO_API_KEY || !email) return;
+  try {
+    await fetch('https://a.klaviyo.com/api/events/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Klaviyo-API-Key ${KLAVIYO_API_KEY}`,
+        'Content-Type':  'application/json',
+        'revision':      '2024-10-15',
+      },
+      body: JSON.stringify({
+        data: {
+          type: 'event',
+          attributes: {
+            properties,
+            metric:  { data: { type: 'metric',  attributes: { name: metricName } } },
+            profile: { data: { type: 'profile', attributes: { properties: { email } } } },
+          },
+        },
+      }),
+    });
+  } catch (e) { console.error('Klaviyo event error:', e.message); }
+}
+
+// ── Lógica: pago automático de comisiones pendientes ──────────────────────────
+async function processAffiliatePayout(order) {
+  const customerEmail = order.email?.toLowerCase()?.trim();
+  const orderId       = order.id?.toString();
+  const orderAmount   = parseFloat(order.total_price || 0);
+  if (!customerEmail || !orderId || orderAmount <= 0) return;
+
+  // 1) ¿Este pedido ya pagó comisiones antes? (idempotencia ante reintentos de Shopify)
+  const { data: alreadyPaid } = await supabase
+    .from('commissions').select('id').eq('paid_via_order_id', orderId).limit(1);
+  if (alreadyPaid?.length) return;
+
+  // 2) ¿El cliente del pedido es un afiliado?
+  const { data: affiliate } = await supabase
+    .from('affiliates').select('*').eq('email', customerEmail).maybeSingle();
+  if (!affiliate) return;
+
+  // 3) Solo auto-reembolso si su preferencia es 'discount' (los de IBAN se pagan manual)
+  if (affiliate.reward_preference !== 'discount') return;
+
+  // 4) ¿Tiene comisiones pendientes?
+  const { data: pending } = await supabase
+    .from('commissions').select('*')
+    .eq('affiliate_id', affiliate.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true });
+  if (!pending?.length) return;
+
+  // 5) Calcular cuánto se puede reembolsar (sin pasarse del importe del pedido)
+  const totalOwed   = pending.reduce((s, c) => s + Number(c.commission_amount), 0);
+  const refundAmount = Math.min(totalOwed, orderAmount);
+  if (refundAmount <= 0) return;
+
+  // 6) Reembolsar en Shopify
+  let refund;
+  try {
+    refund = await refundOrder(
+      orderId,
+      refundAmount,
+      `Comisión de afiliado ${affiliate.code} (${pending.length} venta${pending.length > 1 ? 's' : ''})`
+    );
+  } catch (e) {
+    console.error(`Refund FAIL afiliado=${affiliate.code} order=${orderId}:`, e.message);
+    return;
+  }
+
+  // 7) Marcar como pagadas las comisiones que entren en el reembolso (FIFO)
+  let remaining = refundAmount;
+  const paidIds = [];
+  let paidTotal = 0;
+  for (const c of pending) {
+    const amt = Number(c.commission_amount);
+    if (amt <= remaining + 0.001) {
+      paidIds.push(c.id);
+      remaining -= amt;
+      paidTotal += amt;
+    }
+  }
+  if (paidIds.length) {
+    await supabase.from('commissions').update({
+      status:            'paid',
+      paid_at:           new Date().toISOString(),
+      paid_via_order_id: orderId,
+      shopify_refund_id: refund.id?.toString() || null,
+    }).in('id', paidIds);
+  }
+
+  console.log(`Payout OK afiliado=${affiliate.code} reembolso=${paidTotal}€ pedido=${orderId}`);
+
+  // 8) Notificar al afiliado (opcional, vía Klaviyo)
+  await trackKlaviyoEvent(affiliate.email, 'Comisión Pagada', {
+    affiliate_code: affiliate.code,
+    affiliate_name: affiliate.name,
+    refund_amount:  paidTotal,
+    order_id:       orderId,
+    commissions_paid: paidIds.length,
+  });
+}
+
+// ── Lógica: registrar nueva comisión por referido ─────────────────────────────
+async function trackReferralCommission(order) {
+  const customerEmail = order.email?.toLowerCase()?.trim();
+  const orderAmount   = parseFloat(order.total_price || 0);
+  const orderId       = order.id?.toString();
+  const customerName  = [
+    order.billing_address?.first_name,
+    order.billing_address?.last_name,
+  ].filter(Boolean).join(' ') || order.email;
+
+  if (!customerEmail || !orderId) return;
+
+  // ¿Ya registramos comisión por este pedido?
+  const { data: dup } = await supabase
+    .from('commissions').select('id').eq('shopify_order_id', orderId).maybeSingle();
+  if (dup) return;
+
+  // ¿Ya es cliente referido por alguien?
+  const { data: existingRef } = await supabase
+    .from('referred_customers')
+    .select('*, affiliates(*)')
+    .eq('customer_email', customerEmail)
+    .maybeSingle();
+
+  if (existingRef) {
+    const affiliate = existingRef.affiliates;
+    if (affiliate.has_recurring) {
+      const commission = Math.round(orderAmount * 0.01 * 100) / 100;
+      await supabase.from('commissions').insert({
+        affiliate_id:         affiliate.id,
+        referred_customer_id: existingRef.id,
+        shopify_order_id:     orderId,
+        order_amount:         orderAmount,
+        commission_type:      'recurring',
+        commission_amount:    commission,
+        status:               'pending',
+      });
+    }
+    return;
+  }
+
+  // Cliente nuevo — buscar código de afiliado en el pedido
+  const refAttr = order.note_attributes?.find(a => a.name === 'Afiliado');
+  const refCode = refAttr?.value ? normalize(refAttr.value) : null;
+  if (!refCode) return;
+
+  const { data: affiliate } = await supabase
+    .from('affiliates').select('*').eq('code', refCode).maybeSingle();
+  if (!affiliate) return;
+
+  const { data: newRef } = await supabase.from('referred_customers').insert({
+    affiliate_id:   affiliate.id,
+    customer_email: customerEmail,
+    customer_name:  customerName,
+  }).select().maybeSingle();
+
+  await supabase.from('commissions').insert({
+    affiliate_id:         affiliate.id,
+    referred_customer_id: newRef.id,
+    shopify_order_id:     orderId,
+    order_amount:         orderAmount,
+    commission_type:      'flat',
+    commission_amount:    15,
+    status:               'pending',
+  });
+}
+
 // ── Webhook Shopify: pedido pagado ────────────────────────────────────────────
 app.post('/webhook/order', async (req, res) => {
   // Verify HMAC signature
@@ -225,72 +440,13 @@ app.post('/webhook/order', async (req, res) => {
   let order;
   try { order = JSON.parse(req.body); } catch { return res.sendStatus(400); }
 
-  const customerEmail = order.email?.toLowerCase()?.trim();
-  const orderAmount   = parseFloat(order.total_price || 0);
-  const orderId       = order.id?.toString();
-  const customerName  = [
-    order.billing_address?.first_name,
-    order.billing_address?.last_name,
-  ].filter(Boolean).join(' ') || order.email;
-
-  if (!customerEmail || !orderId) return res.sendStatus(200);
-
-  // Already processed?
-  const { data: dup } = await supabase.from('commissions').select('id').eq('shopify_order_id', orderId).maybeSingle();
-  if (dup) return res.sendStatus(200);
-
-  // Is this customer already referred by someone?
-  const { data: existingRef } = await supabase
-    .from('referred_customers')
-    .select('*, affiliates(*)')
-    .eq('customer_email', customerEmail)
-    .maybeSingle();
-
-  if (existingRef) {
-    // Recurring purchase
-    const affiliate = existingRef.affiliates;
-    if (affiliate.has_recurring) {
-      const commission = Math.round(orderAmount * 0.01 * 100) / 100;
-      await supabase.from('commissions').insert({
-        affiliate_id:          affiliate.id,
-        referred_customer_id:  existingRef.id,
-        shopify_order_id:      orderId,
-        order_amount:          orderAmount,
-        commission_type:       'recurring',
-        commission_amount:     commission,
-        status:                'pending',
-      });
-    }
-    return res.sendStatus(200);
-  }
-
-  // New customer — check for affiliate code in order attributes
-  const refAttr = order.note_attributes?.find(a => a.name === 'Afiliado');
-  const refCode = refAttr?.value ? normalize(refAttr.value) : null;
-  if (!refCode) return res.sendStatus(200);
-
-  const { data: affiliate } = await supabase.from('affiliates').select('*').eq('code', refCode).maybeSingle();
-  if (!affiliate) return res.sendStatus(200);
-
-  // Save referred customer
-  const { data: newRef } = await supabase.from('referred_customers').insert({
-    affiliate_id:   affiliate.id,
-    customer_email: customerEmail,
-    customer_name:  customerName,
-  }).select().maybeSingle();
-
-  // Create flat commission (15€)
-  await supabase.from('commissions').insert({
-    affiliate_id:         affiliate.id,
-    referred_customer_id: newRef.id,
-    shopify_order_id:     orderId,
-    order_amount:         orderAmount,
-    commission_type:      'flat',
-    commission_amount:    15,
-    status:               'pending',
-  });
-
+  // Responder rápido a Shopify; procesamos en segundo plano
   res.sendStatus(200);
+
+  await Promise.all([
+    trackReferralCommission(order).catch(e => console.error('Referral error:', e.message)),
+    processAffiliatePayout(order).catch(e => console.error('Payout error:', e.message)),
+  ]);
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────

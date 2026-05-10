@@ -63,6 +63,34 @@
 
 ---
 
+## PASO 4b — Crear Custom App de Shopify (auto-pago de comisiones)
+
+Para que el sistema reembolse automáticamente 15€ del próximo pedido del afiliado.
+
+1. Shopify Admin → **Configuración → Aplicaciones y canales de venta → Desarrollar aplicaciones**
+2. Click **Crear una aplicación** → nombre: `Nucopex Afiliados`
+3. Pestaña **Configuración → Configurar Admin API scopes** → marca:
+   - `read_orders`
+   - `write_orders`
+4. **Guardar** → pestaña **Credenciales de API → Instalar app**
+5. Click **Revelar token de Admin API una vez** → copia el `shpat_xxx`
+6. Aplica también la migración SQL en Supabase:
+   - SQL Editor → pega y ejecuta el contenido de `migration-payouts.sql`
+7. En Render → **Environment Variables** añade:
+   | Variable | Valor |
+   |---|---|
+   | `SHOPIFY_STORE_DOMAIN` | `nucopex.myshopify.com` |
+   | `SHOPIFY_ADMIN_TOKEN` | el `shpat_xxx` del paso 5 |
+   | `KLAVIYO_API_KEY` | (opcional, para notificar al afiliado) |
+8. Render hará redeploy automático
+
+**Cómo funciona:**
+- Webhook `orders/paid` llega → si el cliente del pedido es un afiliado con comisiones pendientes y eligió "descuento" → el servidor reembolsa hasta 15€×N de ese pedido vía Shopify API
+- El afiliado ve el reembolso en su banco al día siguiente del cobro recurrente
+- Los afiliados que eligieron "IBAN" se quedan en cola manual en `/admin`
+
+---
+
 ## PASO 5 — Instalar snippet de seguimiento en Shopify
 
 1. Shopify Admin → **Tienda online → Temas → ··· → Editar código**
