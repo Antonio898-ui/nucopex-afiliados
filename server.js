@@ -440,8 +440,10 @@ async function trackReferralCommission(order) {
 app.post('/webhook/order', async (req, res) => {
   console.log(`[WEBHOOK] llegó request, body ${req.body?.length || 0} bytes`);
 
-  // Verify HMAC signature
-  if (SHOPIFY_SECRET) {
+  // Verify HMAC signature (puedes desactivar temporalmente con SKIP_HMAC=true)
+  if (process.env.SKIP_HMAC === 'true') {
+    console.warn('[WEBHOOK] ⚠️ HMAC desactivado por SKIP_HMAC=true (modo debug)');
+  } else if (SHOPIFY_SECRET) {
     const hmac   = req.headers['x-shopify-hmac-sha256'];
     const digest = crypto.createHmac('sha256', SHOPIFY_SECRET).update(req.body).digest('base64');
     if (hmac !== digest) {
