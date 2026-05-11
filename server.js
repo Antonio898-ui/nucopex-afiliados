@@ -438,22 +438,35 @@ async function trackReferralCommission(order) {
 
 // ── Webhook Shopify: pedido pagado ────────────────────────────────────────────
 app.post('/webhook/order', async (req, res) => {
+  console.log(`[WEBHOOK] llegó request, body ${req.body?.length || 0} bytes`);
+
   // Verify HMAC signature
   if (SHOPIFY_SECRET) {
     const hmac   = req.headers['x-shopify-hmac-sha256'];
     const digest = crypto.createHmac('sha256', SHOPIFY_SECRET).update(req.body).digest('base64');
-    if (hmac !== digest) return res.status(401).send('Invalid signature');
+    if (hmac !== digest) {
+      console.error(`[WEBHOOK] FIRMA INVÁLIDA. recibida=${hmac?.slice(0,12)}... esperada=${digest.slice(0,12)}...`);
+      return res.status(401).send('Invalid signature');
+    }
+  } else {
+    console.warn('[WEBHOOK] SHOPIFY_WEBHOOK_SECRET no configurado, saltando verificación HMAC');
   }
 
   let order;
-  try { order = JSON.parse(req.body); } catch { return res.sendStatus(400); }
+  try { order = JSON.parse(req.body); } catch (e) {
+    console.error('[WEBHOOK] JSON inválido:', e.message);
+    return res.sendStatus(400);
+  }
+
+  const refAttr = order.note_attributes?.find(a => a.name === 'Afiliado');
+  console.log(`[WEBHOOK] order=${order.id} email=${order.email} total=${order.total_price}€ Afiliado="${refAttr?.value || '(ninguno)'}"`);
 
   // Responder rápido a Shopify; procesamos en segundo plano
   res.sendStatus(200);
 
   await Promise.all([
-    trackReferralCommission(order).catch(e => console.error('Referral error:', e.message)),
-    processAffiliatePayout(order).catch(e => console.error('Payout error:', e.message)),
+    trackReferralCommission(order).catch(e => console.error('[WEBHOOK] Referral error:', e.message)),
+    processAffiliatePayout(order).catch(e => console.error('[WEBHOOK] Payout error:', e.message)),
   ]);
 });
 
